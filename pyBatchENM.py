@@ -1,6 +1,7 @@
 # import statements python2.7
 import os
 import subprocess
+import sqlite3
 
 class ENMrun:
 
@@ -20,8 +21,9 @@ class ENMrun:
     def read_results(self):
         print('reading results')
         with open('enm1.1ou') as f:
-            content=f.readlines()
-            print(content)
+            self.content=f.readlines()
+        for i in range(len(self.content)):
+            print(self.content[i])
 
 
 class SourceFile:
@@ -101,3 +103,7 @@ sectionFileTemp=SectionFile()
 testRun=ENMrun(sectionFileTemp,sectionFileTemp)
 testRun.start_run()
 testRun.read_results()
+
+#
+
+results_connection=sqlite3.connect()
