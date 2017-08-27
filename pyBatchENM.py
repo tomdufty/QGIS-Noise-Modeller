@@ -30,8 +30,6 @@ class ENMrun:
         print('reading results')
         with open('enm1.1ou') as f:
             self.content = f.readlines()
-        for i in range(len(self.content)):
-            print(self.content[i])
         results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[54])
         results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[55])
         results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[56])
@@ -40,7 +38,7 @@ class ENMrun:
              self.results_array.append(results_array1[j+1])
              self.results_array.append(results_array2[j])
              self.results_array.append(results_array3[j])
-        print(self.results_array)
+
 
 
 
@@ -52,9 +50,13 @@ class ENMrun:
         self.results_array.insert(0, self.wind_speed)
         self.results_array.insert(0,self.metCondNo)
         self.results_array.insert(0, self.recNo)
-        self.results_array.insert(0,0)
+
+        cursor=connection.execute('SELECT max(id) FROM results ')
+        max_id = cursor.fetchone()[0]
+        if max_id is None:
+            max_id=-1
+        self.results_array.insert(0,max_id+1)
         [float(i) for i in self.results_array]
-        print(self.results_array)
         connection.execute(query,self.results_array)
         connection.commit()
 
@@ -99,10 +101,16 @@ class RunFile:
     def __init__(self):
         print('new scenario file')
 
-    def write(self):
+    def write(self,metCond):
+        with open('enm.1cs') as f:
+            content = f.readlines()
+        print(content[9])
+        content[9]='20,85,%d,%d, 4 ,%d,' %(metCond.wind_speed,metCond.wind_dir,metCond.temp_grad)
+        print(content[9])
 
         print('writing scenario file')
-
+        with open('enm.1cs', 'w') as file:
+            file.writelines( content )
 
 
 class Receiver:
@@ -152,8 +160,8 @@ class ResultTable:
                                             id integer PRIMARY KEY,
                                             RecNo integer NOT NULL,
                                             MetCondNo integer NOT NULL,
-                                            speed FLOAT(5),
                                             direction FLOAT(5),
+                                            speed FLOAT(5),
                                             total FLOAT(5),
                                             r25Hz float(5),
                                             r31_5Hz float(5),
@@ -197,7 +205,6 @@ class ResultTable:
                c = self.conn.cursor()
                print("create table")
                c.execute(self.sql_create_results_table,())
-               print("executed")
             except Exception as e:
                 print("exception")
                 print(e)
@@ -205,12 +212,24 @@ class ResultTable:
 # start of main code
 sourcefiletemp=SourceFile()
 sectionFileTemp=SectionFile()
-testRun=ENMrun(sectionFileTemp,sectionFileTemp)
-# testRun.start_run()
-testRun.read_results()
-testRun.count_result_source()
-print(testRun.read_wind())
+newRunFile=RunFile()
 
+#create results table
 results_path = "results_test.db"
 results_table = ResultTable(results_path)
-testRun.write_results(results_table.conn)
+
+# loop through conjugations of met conditions and run enm adding result to database
+for wind_direction in range(0,360,10):
+    for wind_speed in range(0,6,1):
+        newMetCond=MetCond(20,85,wind_speed,wind_direction,2)
+        newRunFile.write(newMetCond)
+        testRun=ENMrun(sectionFileTemp,sectionFileTemp)
+        # testRun.start_run()
+        testRun.read_results()
+        testRun.read_wind()
+
+        # write results to table
+        testRun.write_results(results_table.conn)
+
+
+
