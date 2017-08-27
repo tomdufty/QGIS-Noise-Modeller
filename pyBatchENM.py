@@ -16,6 +16,8 @@ class ENMrun:
         self.results_array = []
         self.wind_speed=0
         self.wind_dir=0
+        self.metCondNo=0
+        self.recNo=0
 
 
     def start_run(self):
@@ -30,13 +32,32 @@ class ENMrun:
             self.content = f.readlines()
         for i in range(len(self.content)):
             print(self.content[i])
-        self.results_array = re.findall("\d+\.\d+", self.content[54]+self.content[55]+self.content[56])
+        results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[54])
+        results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[55])
+        results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[56])
+        self.results_array.append(results_array1[0])
+        for j in range(len(results_array2)):
+             self.results_array.append(results_array1[j+1])
+             self.results_array.append(results_array2[j])
+             self.results_array.append(results_array3[j])
         print(self.results_array)
 
 
 
-    def write_results(self,table):
+    def write_results(self,connection):
         print("writing results to table")
+        query="INSERT INTO results VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+
+        self.results_array.insert(0,self.wind_dir)
+        self.results_array.insert(0, self.wind_speed)
+        self.results_array.insert(0,self.metCondNo)
+        self.results_array.insert(0, self.recNo)
+        self.results_array.insert(0,0)
+        [float(i) for i in self.results_array]
+        print(self.results_array)
+        connection.execute(query,self.results_array)
+        connection.commit()
+
 
     def count_result_source(self):
         count = 0
@@ -72,14 +93,16 @@ class SectionFile:
         print('writing section file')
 
 
-class ScenarioFile:
+class RunFile:
     path = ''
 
     def __init__(self):
         print('new scenario file')
 
     def write(self):
+
         print('writing scenario file')
+
 
 
 class Receiver:
@@ -128,13 +151,10 @@ class ResultTable:
     sql_create_results_table = """ CREATE TABLE IF NOT EXISTS results (
                                             id integer PRIMARY KEY,
                                             RecNo integer NOT NULL,
-                                            SourceNo integer NOT NULL,
                                             MetCondNo integer NOT NULL,
                                             speed FLOAT(5),
                                             direction FLOAT(5),
-                                            r12_5Hz FLOAT(5),
-                                            r16Hz float(5),
-                                            r20Hz float(5),
+                                            total FLOAT(5),
                                             r25Hz float(5),
                                             r31_5Hz float(5),
                                             r40Hz float(5),
@@ -169,12 +189,12 @@ class ResultTable:
 
     def __init__(self,result_path):
         try:
-            conn = sqlite3.connect(result_path)
+            self.conn = sqlite3.connect(result_path)
         except Exception as e:
             print(e)
-        if conn is not None:
+        if self.conn is not None:
             try:
-               c = conn.cursor()
+               c = self.conn.cursor()
                print("create table")
                c.execute(self.sql_create_results_table,())
                print("executed")
@@ -193,3 +213,4 @@ print(testRun.read_wind())
 
 results_path = "results_test.db"
 results_table = ResultTable(results_path)
+testRun.write_results(results_table.conn)
