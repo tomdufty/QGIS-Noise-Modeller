@@ -50,7 +50,7 @@ class ENMrun:
         self.results_array.insert(0, self.wind_speed)
         self.results_array.insert(0,self.metCondNo)
         self.results_array.insert(0, self.recNo)
-
+        # get max id in orer to create unique primary key
         cursor=connection.execute('SELECT max(id) FROM results ')
         max_id = cursor.fetchone()[0]
         if max_id is None:
@@ -70,8 +70,10 @@ class ENMrun:
         return count
 
     def read_wind(self):
-        self.wind_dir,self.wind_speed = re.findall("\d+\.\d+",self.content[13])
-        print(self.wind_speed)
+        with open('enm1.1ou') as f:
+            self.content = f.readlines()
+        self.wind_dir,self.wind_speed = re.findall("[+-]?[0-9]*?[.][0-9]*",self.content[13])
+        f.close()
 
 
 class SourceFile:
@@ -104,13 +106,16 @@ class RunFile:
     def write(self,metCond):
         with open('enm.1cs') as f:
             content = f.readlines()
-        print(content[9])
-        content[9]='20,85,%d,%d, 4 ,%d,' %(metCond.wind_speed,metCond.wind_dir,metCond.temp_grad)
-        print(content[9])
+        f.close()
+        print content[9]
+        print '20,85,%d,%d, 4 ,%d,' %(metCond.wind_speed,metCond.wind_dir,metCond.temp_grad)
+        content[9]='20,85,%d,%d, 4 ,%d,\n' %(metCond.wind_speed,metCond.wind_dir,metCond.temp_grad)
+
 
         print('writing scenario file')
         with open('enm.1cs', 'w') as file:
-            file.writelines( content )
+            file.writelines(content)
+        file.close()
 
 
 class Receiver:
@@ -224,7 +229,7 @@ for wind_direction in range(0,360,10):
         newMetCond=MetCond(20,85,wind_speed,wind_direction,2)
         newRunFile.write(newMetCond)
         testRun=ENMrun(sectionFileTemp,sectionFileTemp)
-        # testRun.start_run()
+        testRun.start_run()
         testRun.read_results()
         testRun.read_wind()
 
