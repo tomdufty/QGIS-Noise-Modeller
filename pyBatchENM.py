@@ -2,6 +2,8 @@
 import os
 import subprocess
 import sqlite3
+import re
+
 
 class ENMrun:
 
@@ -9,8 +11,12 @@ class ENMrun:
     error_code=0
 
     def __init__(self,source,section):
-        self.source_file=source
-        self.section_file=section
+        self.source_file = source
+        self.section_file = section
+        self.results_array = []
+        self.wind_speed=0
+        self.wind_dir=0
+
 
     def start_run(self):
         # start and run instance of ENM11
@@ -21,12 +27,32 @@ class ENMrun:
     def read_results(self):
         print('reading results')
         with open('enm1.1ou') as f:
-            self.content=f.readlines()
+            self.content = f.readlines()
         for i in range(len(self.content)):
             print(self.content[i])
+        self.results_array = re.findall("\d+\.\d+", self.content[54]+self.content[55]+self.content[56])
+        print(self.results_array)
+
+
+
+    def write_results(self,table):
+        print("writing results to table")
+
+    def count_result_source(self):
+        count = 0
+        for i in range(len(self.content)):
+            if len(self.content[i])>2:
+                if self.content[i][1:7] == "SOURCE":
+                    count += 1
+        return count
+
+    def read_wind(self):
+        self.wind_dir,self.wind_speed = re.findall("\d+\.\d+",self.content[13])
+        print(self.wind_speed)
 
 
 class SourceFile:
+
     path = ''
 
     def __init__(self):
@@ -157,11 +183,13 @@ class ResultTable:
                 print(e)
 
 # start of main code
-# sourcefiletemp=SourceFile()
-# sectionFileTemp=SectionFile()
-# testRun=ENMrun(sectionFileTemp,sectionFileTemp)
+sourcefiletemp=SourceFile()
+sectionFileTemp=SectionFile()
+testRun=ENMrun(sectionFileTemp,sectionFileTemp)
 # testRun.start_run()
-# testRun.read_results()
+testRun.read_results()
+testRun.count_result_source()
+print(testRun.read_wind())
 
 results_path = "results_test.db"
 results_table = ResultTable(results_path)
