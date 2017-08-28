@@ -101,16 +101,27 @@ class SourceFile:
         print('writing source file')
         x,y,z=source.x,source.y,source.z
         spectrum=source.spectrum
-        with open(self.path,'r+') as srcfile:
+        with open(self.path,'r') as srcfile:
             src_content=srcfile.readlines()
-        for index in range(len(src_content)):
-            if src_content[index][0:8]=='*X, Y, Z:':
-                xyzindex=index+1
-            if src_content[index][0:5]=='*Level':
-                Levelindex=index+1
-        src_content[xyzindex]='%f    %f    %f    0    0    0\n'%(x,y,z)
+        with open(self.path,'w') as srcfile:
+            for index in range(len(src_content)):
+                if src_content[index][0:8] == '*X, Y, Z':
+                    xyzindex=index+1
+                if src_content[index][0:6] == '*Level':
+                    Levelindex=index+1
+            src_content[xyzindex]='%f    %f    %f    0    0    0\n'%(x,y,z)
+            src_content[Levelindex] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f\n'%tuple(
+                spectrum[0::3]
+            )
+            src_content[Levelindex+1] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f\n' % tuple(
+               spectrum[1::3]
+            )
+            src_content[Levelindex+2] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f\n' % tuple(
+                spectrum[2::3]
+            )
+            srcfile.writelines(src_content)
+            self.numberSource += 1
 
-        self.numberSource += 1
 
 
 
@@ -161,13 +172,15 @@ class Spectrum:
 
 
 class Source:
-    def __init__(self,no,x,y,z,spectrum):
+    def __init__(self,no,x,y,z,spect):
         print('new source')
         self.no=no
         self.x=x
         self.y=y
         self.z=z
-        self.spectrum = spectrum
+        self.spectrum = []
+        for item in spect:
+            self.spectrum.append(item)
 
 class Section:
     def __init__(self,receiver,source):
@@ -261,10 +274,9 @@ with open('sourcelist.csv') as f:
     content = f.readlines()
 f.close()
 for i in range(len(content)):
-    print(content[i].split(','))
     arglistsource=[float(j) for j in content[i].split(',')]
-    no,x,y,z=arglistsource[0:4]
-    spectrum=arglistsource[5:len(arglistsource)]
+    no,x,y,z=arglistsource[:4]
+    spectrum=arglistsource[4:len(arglistsource)]
     newSource=Source(no,x,y,z,spectrum)
     sourcelist.append(newSource)
 
