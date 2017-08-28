@@ -30,9 +30,12 @@ class ENMrun:
         print('reading results')
         with open('enm1.1ou') as f:
             self.content = f.readlines()
-        results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[54])
-        results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[55])
-        results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[56])
+        for index in range(len(self.content)):
+            if self.content[index][1:6]=='TOTAL':
+                resultindex=index
+        results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[resultindex])
+        results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[resultindex+1])
+        results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[resultindex+2])
         self.results_array.append(results_array1[0])
         for j in range(len(results_array2)):
              self.results_array.append(results_array1[j+1])
@@ -72,20 +75,24 @@ class ENMrun:
     def read_wind(self):
         with open('enm1.1ou') as f:
             self.content = f.readlines()
-        self.wind_dir,self.wind_speed = re.findall("[+-]?[0-9]*?[.][0-9]*",self.content[13])
+        for index in range(len(self.content)):
+            print(self.content[index][1:5])
+            if self.content[index][1:5]=='WIND':
+                windindex=index+1
+        self.wind_dir,self.wind_speed = re.findall("[+-]?[0-9]*?[.][0-9]*",self.content[windindex])
         f.close()
 
 
 class SourceFile:
 
     path = 'C:/ENM/Sources/QGISENM.SRC'
-    demo_path='C:/ENM/Sources/INPDEMO'
+    demo_path='INPDEMO'
 
     def __init__(self):
         print('new source file')
         with open(self.demo_path) as demosrcfile:
             initial_content=demosrcfile.readlines()
-        demosrcfile.close
+        demosrcfile.close()
         with open(self.path,'w') as srcfile:
             srcfile.writelines(initial_content)
         srcfile.close()
@@ -223,7 +230,9 @@ class ResultTable:
                 print(e)
 
 # start of main code
+
 sourcefiletemp=SourceFile()
+sourcefiletemp.write()
 sectionFileTemp=SectionFile()
 newRunFile=RunFile()
 
