@@ -76,7 +76,6 @@ class ENMrun:
         with open('enm1.1ou') as f:
             self.content = f.readlines()
         for index in range(len(self.content)):
-            print(self.content[index][1:5])
             if self.content[index][1:5]=='WIND':
                 windindex=index+1
         self.wind_dir,self.wind_speed = re.findall("[+-]?[0-9]*?[.][0-9]*",self.content[windindex])
@@ -134,8 +133,9 @@ class RunFile:
 
 
 class Receiver:
-    def __init__(self,x,y,z,h):
+    def __init__(self,no,x,y,z,h):
         print('new receiver')
+        self.no=no
         self.x=x
         self.y=y
         self.z=z
@@ -148,18 +148,18 @@ class Spectrum:
 
 
 class Source:
-    def __init__(self,x,y,z,h):
+    def __init__(self,no,x,y,z,spectrum):
         print('new source')
         self.x=x
         self.y=y
         self.z=z
-        self.h=h
-
+        self.spectrum = spectrum
 
 class Section:
-    def __init__(self,source):
+    def __init__(self,receiver,source):
         print('new section')
         self.source=source
+        self.receiver=receiver
         self.xzPointList=[]
 
     def add_point(self,x,z):
@@ -230,6 +230,29 @@ class ResultTable:
                 print(e)
 
 # start of main code
+#create list of receivers from dummy csv file to be replaced wiht shapefile input
+
+receiverlist=[]
+with open('receiverlist.csv') as f:
+    content = f.readlines()
+f.close()
+for i in range(len(content)):
+    arglistrec=[float(j) for j in content[i].split(',')]
+    newReceiver=Receiver(*arglistrec)
+    receiverlist.append(newReceiver)
+
+#create list of sources
+sourcelist=[]
+with open('sourcelist.csv') as f:
+    content = f.readlines()
+f.close()
+for i in range(len(content)):
+    print(content[i].split(','))
+    arglistsource=[float(j) for j in content[i].split(',')]
+    no,x,y,z=arglistsource[0:4]
+    spectrum=arglistsource[5:len(arglistsource)]
+    newSource=Source(no,x,y,z,spectrum)
+    sourcelist.append(newSource)
 
 sourcefiletemp=SourceFile()
 sourcefiletemp.write()
