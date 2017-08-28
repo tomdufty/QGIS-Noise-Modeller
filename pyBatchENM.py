@@ -78,13 +78,22 @@ class ENMrun:
 
 class SourceFile:
 
-    path = ''
+    path = 'C:/ENM/Sources/QGISENM.SRC'
+    demo_path='C:/ENM/Sources/INPDEMO'
 
     def __init__(self):
         print('new source file')
+        with open(self.demo_path) as demosrcfile:
+            initial_content=demosrcfile.readlines()
+        demosrcfile.close
+        with open(self.path,'w') as srcfile:
+            srcfile.writelines(initial_content)
+        srcfile.close()
 
     def write(self):
         print('writing source file')
+
+
 
 
 class SectionFile:
@@ -107,8 +116,7 @@ class RunFile:
         with open('enm.1cs') as f:
             content = f.readlines()
         f.close()
-        print content[9]
-        print '20,85,%d,%d, 4 ,%d,' %(metCond.wind_speed,metCond.wind_dir,metCond.temp_grad)
+        content[4]='QGISENM.SRC\n'
         content[9]='20,85,%d,%d, 4 ,%d,\n' %(metCond.wind_speed,metCond.wind_dir,metCond.temp_grad)
 
 
@@ -224,17 +232,25 @@ results_path = "results_test.db"
 results_table = ResultTable(results_path)
 
 # loop through conjugations of met conditions and run enm adding result to database
-for wind_direction in range(0,360,10):
-    for wind_speed in range(0,6,1):
-        newMetCond=MetCond(20,85,wind_speed,wind_direction,2)
-        newRunFile.write(newMetCond)
-        testRun=ENMrun(sectionFileTemp,sectionFileTemp)
-        testRun.start_run()
-        testRun.read_results()
-        testRun.read_wind()
+# for wind_direction in range(0,360,10):
+#    for wind_speed in range(0,6,1):
+#        newMetCond=MetCond(20,85,wind_speed,wind_direction,2)
+#        newRunFile.write(newMetCond)
+#        testRun=ENMrun(sectionFileTemp,sectionFileTemp)
+#        testRun.start_run()
+#        testRun.read_results()
+#        testRun.read_wind()
 
         # write results to table
-        testRun.write_results(results_table.conn)
+#        testRun.write_results(results_table.conn)
 
+newMetCond=MetCond(20,85,3,180,2)
+newRunFile.write(newMetCond)
+testRun=ENMrun(sectionFileTemp,sectionFileTemp)
+testRun.start_run()
+testRun.read_results()
+testRun.read_wind()
 
+     # write results to table
+testRun.write_results(results_table.conn)
 
