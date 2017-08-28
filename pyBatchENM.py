@@ -86,6 +86,7 @@ class SourceFile:
 
     path = 'C:/ENM/Sources/QGISENM.SRC'
     demo_path='INPDEMO'
+    numberSource=0
 
     def __init__(self):
         print('new source file')
@@ -96,8 +97,20 @@ class SourceFile:
             srcfile.writelines(initial_content)
         srcfile.close()
 
-    def write(self):
+    def add_source(self,source):
         print('writing source file')
+        x,y,z=source.x,source.y,source.z
+        spectrum=source.spectrum
+        with open(self.path,'r+') as srcfile:
+            src_content=srcfile.readlines()
+        for index in range(len(src_content)):
+            if src_content[index][0:8]=='*X, Y, Z:':
+                xyzindex=index+1
+            if src_content[index][0:5]=='*Level':
+                Levelindex=index+1
+
+
+        self.numberSource += 1
 
 
 
@@ -150,6 +163,7 @@ class Spectrum:
 class Source:
     def __init__(self,no,x,y,z,spectrum):
         print('new source')
+        self.no=no
         self.x=x
         self.y=y
         self.z=z
