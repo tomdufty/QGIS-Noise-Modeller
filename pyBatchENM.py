@@ -108,7 +108,7 @@ class SourceFile:
                 xyzindex=index+1
             if src_content[index][0:5]=='*Level':
                 Levelindex=index+1
-
+        src_content[xyzindex]='%f    %f    %f    0    0    0\n'%(x,y,z)
 
         self.numberSource += 1
 
@@ -269,7 +269,7 @@ for i in range(len(content)):
     sourcelist.append(newSource)
 
 sourcefiletemp=SourceFile()
-sourcefiletemp.write()
+sourcefiletemp.add_source(sourcelist[0])
 sectionFileTemp=SectionFile()
 newRunFile=RunFile()
 
