@@ -3,6 +3,7 @@ import os
 import subprocess
 import sqlite3
 import re
+import math
 
 COORDINATE_LIMIT=32000
 
@@ -18,7 +19,7 @@ class ENMrun:
         self.wind_speed=0
         self.wind_dir=0
         self.metCondNo=0
-        self.recNo=0
+        self.recNo=section.rec.no
 
 
     def start_run(self):
@@ -120,8 +121,8 @@ class SourceFile:
                 return
         if y>COORDINATE_LIMIT:
             if self.yOriginMoved==False:
-                self.yOffset=y-COORDINATE_LIMIT/2
-                y=y-self.xOffset
+                self.yOffset=y
+                y=y-self.yOffset
                 self.yOriginMoved=True
                 source.yOffset=self.yOffset
             else:
@@ -137,7 +138,7 @@ class SourceFile:
                     xyzindex=index+1
                 if src_content[index][0:6] == '*Level':
                     Levelindex=index+1
-            src_content[xyzindex]='%f    %f    %f    0    0    0\n'%(x,y,z)
+            src_content[xyzindex]='%.0f    %.0f    %.1f    0    0    0\n'%(x,y,z)
             src_content[Levelindex] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f\n'%tuple(
                 spectrum[0::3]
             )
@@ -154,8 +155,12 @@ class SourceFile:
 class SectionFile:
     path = 'C:/ENM/Sections/QGISENM.SEC'
 
-    def __init__(self):
+    def __init__(self,rec):
+        self.rec=rec
         print('new section file')
+        with open (self.path,'w') as srcfile:
+            srcfile.seek(0)
+            srcfile.truncate()
 
     def add_section(self,section):
         print('writing section file')
@@ -167,12 +172,13 @@ class SectionFile:
         sec_content.append('*T\n')
         sec_content.append('{%.1f, %.1f}to{%.1f, %.1f}\n'%(srcx,srcy,recx,recy))
         sec_content.append('*X\n')
-        sec_content.append(' '+'{:<14.1f}{:<14.1f}{:<5.1f}\n'.format(srcx,srcy,section.source.z))
+        sec_content.append(' '+'{:<14.0f}{:<14.0f}{:<5.1f}\n'.format(srcx,srcy,section.source.z))
         sec_content.append('*R\n')
-        sec_content.append(' '+'{:<14.1f}{:<14.1f}{:<5.1f}\n'.format(recx,recy,section.receiver.z))
-        sec_content.append('*G-V3\n1, 14, 0, 1000, 0, 25, -15, 15, 0\n')
+        sec_content.append(' '+'{:<14.0f}{:<14.0f}{:<5.1f}\n'.format(recx,recy,section.receiver.z))
+        sec_content.append('*G-V3\n%d,%d,0,1000,0,25,-15,15,0,\'GM\'\n'%(section.source.no,len(section.xzPointList)))
         for point in section.xzPointList:
-            sec_content.append(' ' + '{:<14.1f}{:<14.1f}{:<d}\n'.format(section.xzPointList[point]., recy, 4))
+            sec_content.append(' ' + '{:<14.1f}{:<14.1f}{:<2d}\n'.format(point[0],point[1], 4))
+        sec_content.append(' '+'{:<14d}{:<14d}{:<2d}\n'.format(0,0,0))
         with open(self.path,'a') as srcfile:
             srcfile.writelines(sec_content)
 
@@ -187,7 +193,9 @@ class RunFile:
         with open('enm.1cs') as f:
             content = f.readlines()
         f.close()
+
         content[4]='QGISENM.SRC\n'
+        content[6] = 'QGISENM.SEC\n'
         content[9]='20,85,%d,%d, 4 ,%d,\n' %(metCond.wind_speed,metCond.wind_dir,metCond.temp_grad)
 
 
@@ -233,9 +241,15 @@ class Section:
         self.source=source
         self.receiver=receiver
         self.xzPointList=[]
+        # add first point - z heigh as 0 for now
+        self.add_point(0,0)
+        # add last point - should be moved to proper section development
+        dist=math.sqrt(math.pow((receiver.x-source.x),2)+math.pow((receiver.y-source.y),2))
+        self.add_point(dist,0)
+        self.add_point(dist+10,0)
 
     def add_point(self,x,z):
-        self.xzPointList.append(self,x,z)
+        self.xzPointList.append([x,z])
 
 
 class MetCond:
@@ -302,6 +316,11 @@ class ResultTable:
                 print(e)
 
 # start of main code
+
+#create results table
+results_path = "results_test.db"
+results_table = ResultTable(results_path)
+
 #create list of receivers from dummy csv file to be replaced wiht shapefile input
 
 receiverlist=[]
@@ -326,21 +345,22 @@ for i in range(len(content)):
     newSource=Source(no,x,y,z,spectrum)
     sourcelist.append(newSource)
 
-# create source file - initally only for 1 source
-sourcefiletemp=SourceFile()
-sourcefiletemp.add_source(sourcelist[0])
-#create section file
-sectionFileTemp=SectionFile()
-# populaate section file for each soruce reciever combo
-newSection=Section(receiverlist[0],sourcelist[0])
-sectionFileTemp.add_section(newSection)
+# loop through recievers, create appropriate files, run enm and write results to database
+for rec in receiverlist:
+    # create source file - initally only for 1 source
+    sourcefiletemp=SourceFile()
+    # ivf there were more then one source we would also loop through sources
+    sourcefiletemp.add_source(sourcelist[0])
+    #create section file
+    sectionFileTemp=SectionFile(rec)
+    # populaate section file for each soruce reciever combo
+    newSection=Section(rec,sourcelist[0])
+    sectionFileTemp.add_section(newSection)
 
-#create new rufile
-newRunFile=RunFile()
+    #create new rufile
+    newRunFile=RunFile()
 
-#create results table
-results_path = "results_test.db"
-results_table = ResultTable(results_path)
+
 
 # loop through conjugations of met conditions and run enm adding result to database
 # for wind_direction in range(0,360,10):
@@ -355,13 +375,13 @@ results_table = ResultTable(results_path)
         # write results to table
 #        testRun.write_results(results_table.conn)
 
-newMetCond=MetCond(20,85,3,180,2)
-newRunFile.write(newMetCond)
-testRun=ENMrun(sectionFileTemp,sectionFileTemp)
-testRun.start_run()
-testRun.read_results()
-testRun.read_wind()
+    newMetCond=MetCond(20,85,3,180,2)
+    newRunFile.write(newMetCond)
+    testRun=ENMrun(sectionFileTemp,sectionFileTemp)
+    testRun.start_run()
+    testRun.read_results()
+    testRun.read_wind()
 
      # write results to table
-testRun.write_results(results_table.conn)
+    testRun.write_results(results_table.conn)
 
