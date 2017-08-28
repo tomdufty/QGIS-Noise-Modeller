@@ -4,6 +4,7 @@ import subprocess
 import sqlite3
 import re
 
+COORDINATE_LIMIT=32000
 
 class ENMrun:
 
@@ -86,10 +87,17 @@ class SourceFile:
 
     path = 'C:/ENM/Sources/QGISENM.SRC'
     demo_path='INPDEMO'
-    numberSource=0
+
 
     def __init__(self):
         print('new source file')
+        self.numberSource = 0
+        self.xOriginMoved = False
+        self.yOriginMoved = False
+        self.xOffset = 0
+        self.yOffset = 0
+
+
         with open(self.demo_path) as demosrcfile:
             initial_content=demosrcfile.readlines()
         demosrcfile.close()
@@ -99,7 +107,25 @@ class SourceFile:
 
     def add_source(self,source):
         print('writing source file')
-        x,y,z=source.x,source.y,source.z
+        x,y,z = source.x-self.xOffset,source.y-self.yOffset,source.z
+        # check and see if source is within limits
+        if x>COORDINATE_LIMIT:
+            if self.xOriginMoved==False:
+                self.xOffset=x-COORDINATE_LIMIT/2
+                x=x-self.xOffset
+                self.xOriginMoved=True
+            else:
+                print('out of bounds')
+                return
+        if y>COORDINATE_LIMIT:
+            if self.yOriginMoved==False:
+                self.yOffset=y-COORDINATE_LIMIT/2
+                y=y-self.xOffset
+                self.yOriginMoved=True
+            else:
+                print('out of bounds')
+                return
+
         spectrum=source.spectrum
         with open(self.path,'r') as srcfile:
             src_content=srcfile.readlines()
@@ -181,6 +207,8 @@ class Source:
         self.spectrum = []
         for item in spect:
             self.spectrum.append(item)
+
+
 
 class Section:
     def __init__(self,receiver,source):
