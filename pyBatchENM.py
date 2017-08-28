@@ -114,6 +114,7 @@ class SourceFile:
                 self.xOffset=x-COORDINATE_LIMIT/2
                 x=x-self.xOffset
                 self.xOriginMoved=True
+                source.xOffset=self.xOffset
             else:
                 print('out of bounds')
                 return
@@ -122,6 +123,7 @@ class SourceFile:
                 self.yOffset=y-COORDINATE_LIMIT/2
                 y=y-self.xOffset
                 self.yOriginMoved=True
+                source.yOffset=self.yOffset
             else:
                 print('out of bounds')
                 return
@@ -149,17 +151,30 @@ class SourceFile:
             self.numberSource += 1
 
 
-
-
-
 class SectionFile:
-    path = ''
+    path = 'C:/ENM/Sections/QGISENM.SEC'
 
     def __init__(self):
         print('new section file')
 
-    def write(self):
+    def add_section(self,section):
         print('writing section file')
+        recx=section.receiver.x-section.source.xOffset
+        recy = section.receiver.y - section.source.yOffset
+        srcx = section.source.x - section.source.xOffset
+        srcy = section.source.y - section.source.yOffset
+        sec_content=[]
+        sec_content.append('*T\n')
+        sec_content.append('{%.1f, %.1f}to{%.1f, %.1f}\n'%(srcx,srcy,recx,recy))
+        sec_content.append('*X\n')
+        sec_content.append(' '+'{:<14.1f}{:<14.1f}{:<5.1f}\n'.format(srcx,srcy,section.source.z))
+        sec_content.append('*R\n')
+        sec_content.append(' '+'{:<14.1f}{:<14.1f}{:<5.1f}\n'.format(recx,recy,section.receiver.z))
+        sec_content.append('*G-V3\n1, 14, 0, 1000, 0, 25, -15, 15, 0\n')
+        for point in section.xzPointList:
+            sec_content.append(' ' + '{:<14.1f}{:<14.1f}{:<d}\n'.format(section.xzPointList[point]., recy, 4))
+        with open(self.path,'a') as srcfile:
+            srcfile.writelines(sec_content)
 
 
 class RunFile:
@@ -204,6 +219,8 @@ class Source:
         self.x=x
         self.y=y
         self.z=z
+        self.xOffset=0
+        self.yOffset=0
         self.spectrum = []
         for item in spect:
             self.spectrum.append(item)
@@ -302,15 +319,23 @@ with open('sourcelist.csv') as f:
     content = f.readlines()
 f.close()
 for i in range(len(content)):
+    # loop currntly redundant as each source overwrites the last
     arglistsource=[float(j) for j in content[i].split(',')]
     no,x,y,z=arglistsource[:4]
     spectrum=arglistsource[4:len(arglistsource)]
     newSource=Source(no,x,y,z,spectrum)
     sourcelist.append(newSource)
 
+# create source file - initally only for 1 source
 sourcefiletemp=SourceFile()
 sourcefiletemp.add_source(sourcelist[0])
+#create section file
 sectionFileTemp=SectionFile()
+# populaate section file for each soruce reciever combo
+newSection=Section(receiverlist[0],sourcelist[0])
+sectionFileTemp.add_section(newSection)
+
+#create new rufile
 newRunFile=RunFile()
 
 #create results table
