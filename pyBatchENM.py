@@ -171,10 +171,10 @@ class SectionFile:
         sec_content=[]
         sec_content.append('*T\n')
         sec_content.append('{%.1f, %.1f}to{%.1f, %.1f}\n'%(srcx,srcy,recx,recy))
-        sec_content.append('*X\n')
-        sec_content.append(' '+'{:<14.0f}{:<14.0f}{:<5.1f}\n'.format(srcx,srcy,section.source.z))
-        sec_content.append('*R\n')
-        sec_content.append(' '+'{:<14.0f}{:<14.0f}{:<5.1f}\n'.format(recx,recy,section.receiver.z))
+      #  sec_content.append('*X\n')
+       # sec_content.append(' '+'{:<14.0f}{:<14.0f}{:<5.1f}\n'.format(srcx,srcy,section.source.z))
+        #sec_content.append('*R\n')
+        #sec_content.append(' '+'{:<14.0f}{:<14.0f}{:<5.1f}\n'.format(recx,recy,section.receiver.z))
         sec_content.append('*G-V3\n%d,%d,0,1000,0,25,-15,15,0,\'GM\'\n'%(section.source.no,len(section.xzPointList)))
         for point in section.xzPointList:
             sec_content.append(' ' + '{:<14.1f}{:<14.1f}{:<2d}\n'.format(point[0],point[1], 4))
@@ -189,7 +189,7 @@ class RunFile:
     def __init__(self):
         print('new scenario file')
 
-    def write(self,metCond):
+    def write(self,metCond,rec):
         with open('enm.1cs') as f:
             content = f.readlines()
         f.close()
@@ -197,6 +197,10 @@ class RunFile:
         content[4]='QGISENM.SRC\n'
         content[6] = 'QGISENM.SEC\n'
         content[9]='20,85,%d,%d, 4 ,%d,\n' %(metCond.wind_speed,metCond.wind_dir,metCond.temp_grad)
+        content[10]='%d\n'%(1)
+        content[11]='%.1f,%.1f,%.1f\n'%(rec.x-rec.xOffset,rec.y-rec.yOffset,rec.h)
+        content[12]='1\n'
+
 
 
         print('writing scenario file')
@@ -211,6 +215,8 @@ class Receiver:
         self.no=no
         self.x=x
         self.y=y
+        self.xOffset=0
+        self.yOffset=0
         self.z=z
         self.h=h
 
@@ -351,6 +357,8 @@ for rec in receiverlist:
     sourcefiletemp=SourceFile()
     # ivf there were more then one source we would also loop through sources
     sourcefiletemp.add_source(sourcelist[0])
+    rec.xOffset=sourcefiletemp.xOffset
+    rec.yOffset=sourcefiletemp.yOffset
     #create section file
     sectionFileTemp=SectionFile(rec)
     # populaate section file for each soruce reciever combo
@@ -362,26 +370,26 @@ for rec in receiverlist:
 
 
 
-# loop through conjugations of met conditions and run enm adding result to database
-# for wind_direction in range(0,360,10):
-#    for wind_speed in range(0,6,1):
-#        newMetCond=MetCond(20,85,wind_speed,wind_direction,2)
-#        newRunFile.write(newMetCond)
-#        testRun=ENMrun(sectionFileTemp,sectionFileTemp)
-#        testRun.start_run()
-#        testRun.read_results()
-#        testRun.read_wind()
+#loop through conjugations of met conditions and run enm adding result to database
+    for wind_direction in range(0,360,10):
+        for wind_speed in range(0,6,1):
+            newMetCond=MetCond(20,85,wind_speed,wind_direction,2)
+            newRunFile.write(newMetCond,rec)
+            testRun=ENMrun(sectionFileTemp,sectionFileTemp)
+            testRun.start_run()
+            testRun.read_results()
+            testRun.read_wind()
 
-        # write results to table
-#        testRun.write_results(results_table.conn)
+    # write results to table
+            testRun.write_results(results_table.conn)
 
-    newMetCond=MetCond(20,85,3,180,2)
-    newRunFile.write(newMetCond)
-    testRun=ENMrun(sectionFileTemp,sectionFileTemp)
-    testRun.start_run()
-    testRun.read_results()
-    testRun.read_wind()
-
-     # write results to table
-    testRun.write_results(results_table.conn)
+    # newMetCond=MetCond(20,85,3,180,2)
+    # newRunFile.write(newMetCond)
+    # testRun=ENMrun(sectionFileTemp,sectionFileTemp)
+    # testRun.start_run()
+    # testRun.read_results()
+    # testRun.read_wind()
+    #
+    #  # write results to table
+    # testRun.write_results(results_table.conn)
 
