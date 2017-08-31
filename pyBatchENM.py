@@ -5,6 +5,7 @@ import sqlite3
 import re
 import math
 
+
 COORDINATE_LIMIT=32000
 
 class ENMrun:
@@ -18,6 +19,7 @@ class ENMrun:
         self.results_array = []
         self.wind_speed=0
         self.wind_dir=0
+        self.tempGrad=0
         self.metCondNo=0
         self.recNo=section.rec.no
 
@@ -44,13 +46,13 @@ class ENMrun:
              self.results_array.append(results_array2[j])
              self.results_array.append(results_array3[j])
 
-    def write_results(self,connection,metCondNo):
+    def write_results(self,connection,metcondno,tempgrad):
         print("writing results to table")
-        query="INSERT INTO results VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-
+        query="INSERT INTO results VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+        self.results_array.insert(0,tempgrad)
         self.results_array.insert(0,self.wind_dir)
         self.results_array.insert(0, self.wind_speed)
-        self.results_array.insert(0,metCondNo)
+        self.results_array.insert(0,metcondno)
         self.results_array.insert(0, self.recNo)
         # get max id in orer to create unique primary key
         cursor=connection.execute('SELECT max(id) FROM results ')
@@ -166,10 +168,6 @@ class SectionFile:
         sec_content = []
         sec_content.append('*T\n')
         sec_content.append('{%.1f, %.1f}to{%.1f, %.1f}\n'%(srcx,srcy,recx,recy))
-        #  sec_content.append('*X\n')
-        # sec_content.append(' '+'{:<14.0f}{:<14.0f}{:<5.1f}\n'.format(srcx,srcy,section.source.z))
-        # sec_content.append('*R\n')
-        # sec_content.append(' '+'{:<14.0f}{:<14.0f}{:<5.1f}\n'.format(recx,recy,section.receiver.z))
         sec_content.append('*G-V3\n%d,%d,0,1000,0,25,-15,15,0,\'GM\'\n'%(section.source.no,len(section.xzPointList)))
         for point in section.xzPointList:
             sec_content.append(' ' + '{:<14.1f}{:<14.1f}{:<2d}\n'.format(point[0],point[1], 4))
@@ -191,7 +189,7 @@ class RunFile:
 
         content[4] = 'QGISENM.SRC\n'
         content[6] = 'QGISENM.SEC\n'
-        content[9] = '20,85,%d,%d, 4 ,%d,\n' % (metCond.wind_speed,metCond.wind_dir,metCond.temp_grad)
+        content[9] = '20,85,%.1f,%.1f, 4 ,%d,\n' % (metCond.wind_speed,metCond.wind_dir,metCond.temp_grad)
         content[10] = '%d\n' % 1
         content[11] = '%.1f,%.1f,%.1f\n'%(rec.x-rec.xOffset,rec.y-rec.yOffset,rec.h)
         content[12] = '1\n'
@@ -205,7 +203,7 @@ class RunFile:
 
 
 class Receiver:
-    def __init__(self,no,x,y,z,h):
+    def __init__(self, no, x, y, z, h):
         print('new receiver')
         self.no=no
         self.x=x
@@ -269,6 +267,7 @@ class ResultTable:
                                             MetCondNo integer NOT NULL,
                                             direction FLOAT(5),
                                             speed FLOAT(5),
+                                            tempGrad integer NOT NULL,
                                             total FLOAT(5),
                                             r25Hz float(5),
                                             r31_5Hz float(5),
@@ -348,7 +347,7 @@ for i in range(len(content)):
 
 # loop through recievers, create appropriate files, run enm and write results to database
 for rec in receiverlist:
-    # create source file - initally only for 1 source
+    # create source file - initially only for 1 source
     sourcefiletemp = SourceFile()
     # ivf there were more then one source we would also loop through sources
     sourcefiletemp.add_source(sourcelist[0])
@@ -364,18 +363,18 @@ for rec in receiverlist:
     newRunFile = RunFile()
 
     # loop through conjugations of met conditions and run enm adding result to database
-    metcondno=0
+    metcondno = 0
     for wind_direction in range(0, 360, 10):
-        for wind_speed in range(0, 6, 0.5):
-            for tempgrad in range(0, 5, 1):
-                newMetCond=MetCond(20,85,wind_speed,wind_direction,tempgrad,metcondno)
+        for wind_speed in (0,0.5,1,1.5,2,2.5,3,3.5,4,4.5,5):
+            for tempgrad in (0,1,2,3,4):
+                newMetCond=MetCond(20, 85, wind_speed, wind_direction, tempgrad, metcondno)
                 newRunFile.write(newMetCond,rec)
                 testRun=ENMrun(sectionFileTemp,sectionFileTemp)
                 testRun.start_run()
                 testRun.read_results()
                 testRun.read_wind()
                 # write results to table
-                testRun.write_results(results_table.conn,metcondno)
+                testRun.write_results(results_table.conn,metcondno,tempgrad)
                 metcondno += 1
 
 
