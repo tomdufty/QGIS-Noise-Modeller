@@ -19,6 +19,7 @@ class ENMrun:
         self.tempGrad = 0
         self.metCondNo = 0
         self.recNo = section.rec.no
+        self.source_no = 0
 
     def start_run(self):
         # start and run instance of ENM11
@@ -30,7 +31,6 @@ class ENMrun:
         result_index = []
         wind_index = -1
         source_index = []
-        singe_source_result = []
 
         print('reading results')
         with open('enm1.1ou') as f:
@@ -42,8 +42,11 @@ class ENMrun:
                 wind_index = index + 1
             if out_content[index][1:7] == 'SOURCE':
                 source_index.append(index)
-
+        print(result_index)
+        print(source_index)
+        source_count = 0
         for i in result_index:
+            singe_source_result = []
             results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i])
             results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i + 1])
             results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i + 2])
@@ -52,8 +55,11 @@ class ENMrun:
                 singe_source_result.append(results_array1[j + 1])
                 singe_source_result.append(results_array2[j])
                 singe_source_result.append(results_array3[j])
-        self.results_array.append(singe_source_result)
+            self.results_array.append(singe_source_result)
+            self.source_no = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[source_index[source_count]])
+            source_count += 1
         self.wind_dir, self.wind_speed = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[wind_index])
+
         f.close()
 
     def write_results(self, connection, metcondno, tempgrad):
@@ -88,6 +94,42 @@ class SourceFile:
         self.yOriginMoved = False
         self.xOffset = 0
         self.yOffset = 0
+        string = '*H-Third Octave'\
+            '*Y'\
+            '1,1'\
+            '2,1'\
+            '3,1'\
+            '4,1'\
+            '5,1'\
+            '6,1'\
+            '7,1'\
+            '*Title'\
+            ''\
+            '*Page'\
+            '1 , 0 , 0 , 0, 0'\
+            ''\
+            ''\
+            '*= Formula'\
+            ''\
+            '*Source'\
+            ' 7  ,\'POINT\' , 0 ,  , 17 ,'\
+            '*Title'\
+            ''\
+            '*I'\
+            ''\
+            ''\
+            '*X, Y, Z: Source Coordinates'\
+            '11    22    33    0    0    0'\
+            '*Frequency Range'\
+            ' 1 , 30 ,\'SPECT\''\
+            '            ----------------------FREQUENCY HZ----------------------'\
+            '             31.5   63   125   250   500    1k    2k    4k    8k   16k'\
+            '*Level'\
+            '            ,     ,     ,     ,     ,     ,     ,     ,     ,     ,'\
+            '            10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,'\
+            '                 ,     ,     ,     ,     ,     ,     ,     ,     ,     ,'\
+            '*Directivity-V3.05'\
+            '0,0,22.5,0,0,0,0'
 
         with open(self.demo_path) as demosrcfile:
             initial_content=demosrcfile.readlines()
@@ -96,7 +138,7 @@ class SourceFile:
             srcfile.writelines(initial_content)
         srcfile.close()
 
-    def add_source(self,source):
+    def add_source(self, source):
         print('writing source file')
         x,y,z = source.x-self.xOffset,source.y-self.yOffset,source.z
         # check and see if source is within limits
@@ -119,28 +161,31 @@ class SourceFile:
                 print('out of bounds')
                 return
 
-        spectrum=source.spectrum
-        with open(self.path,'r') as srcfile:
+        spectrum = source.spectrum
+        with open(self.path, 'r') as srcfile:
             src_content = srcfile.readlines()
         with open(self.path,'w') as srcfile:
+
             for index in range(len(src_content)):
                 if src_content[index][0:8] == '*X, Y, Z':
                     xyzindex = index + 1
                 if src_content[index][0:6] == '*Level':
                     Levelindex = index + 1
-            src_content[xyzindex] = '%.0f    %.0f    %.1f    0    0    0\n' % (x, y, z)
-            src_content[Levelindex] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
-                                      '  %0.1f\n' % tuple(
-                spectrum[0::3]
-            )
-            src_content[Levelindex + 1] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
+                print(xyzindex)
+                print(Levelindex)
+                src_content[xyzindex] = '%.0f    %.0f    %.1f    0    0    0\n' % (x, y, z)
+                src_content[Levelindex] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
                                           '  %0.1f\n' % tuple(
-               spectrum[1::3]
-            )
-            src_content[Levelindex + 2] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
-                                          '  %0.1f\n' % tuple(
-                spectrum[2::3]
-            )
+                    spectrum[0::3]
+                )
+                src_content[Levelindex + 1] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
+                                              '  %0.1f\n' % tuple(
+                   spectrum[1::3]
+                )
+                src_content[Levelindex + 2] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
+                                              '  %0.1f\n' % tuple(
+                    spectrum[2::3]
+                )
             srcfile.writelines(src_content)
             self.numberSource += 1
 
@@ -148,10 +193,10 @@ class SourceFile:
 class SectionFile:
     path = 'C:/ENM/Sections/QGISENM.SEC'
 
-    def __init__(self,rec):
-        self.rec=rec
+    def __init__(self, rec):
+        self.rec = rec
         print('new section file')
-        with open (self.path,'w') as srcfile:
+        with open(self.path, 'w') as srcfile:
             srcfile.seek(0)
             srcfile.truncate()
 
@@ -163,12 +208,12 @@ class SectionFile:
         srcy = section.source.y - section.source.yOffset
         sec_content = []
         sec_content.append('*T\n')
-        sec_content.append('{%.1f, %.1f}to{%.1f, %.1f}\n'%(srcx,srcy,recx,recy))
-        sec_content.append('*G-V3\n%d,%d,0,1000,0,25,-15,15,0,\'GM\'\n'%(section.source.no,len(section.xzPointList)))
+        sec_content.append('{%.1f, %.1f}to{%.1f, %.1f}\n' % (srcx,srcy,recx,recy))
+        sec_content.append('*G-V3\n%d,%d,0,1000,0,25,-15,15,0,\'GM\'\n' % (section.source.no, len(section.xzPointList)))
         for point in section.xzPointList:
-            sec_content.append(' ' + '{:<14.1f}{:<14.1f}{:<2d}\n'.format(point[0],point[1], 4))
-        sec_content.append(' '+'{:<14d}{:<14d}{:<2d}\n'.format(0,0,0))
-        with open(self.path,'a') as srcfile:
+            sec_content.append(' ' + '{:<14.1f}{:<14.1f}{:<2d}\n'.format(point[0], point[1], 4))
+        sec_content.append(' '+'{:<14d}{:<14d}{:<2d}\n'.format(0, 0, 0))
+        with open(self.path, 'a') as srcfile:
             srcfile.writelines(sec_content)
 
 
@@ -187,7 +232,7 @@ class RunFile:
         content[6] = 'QGISENM.SEC\n'
         content[9] = '20,85,%.1f,%.1f, 4 ,%d,\n' % (metcond.wind_speed, metcond.wind_dir, metcond.temp_grad)
         content[10] = '%d\n' % 1
-        content[11] = '%.1f,%.1f,%.1f\n'%(rec.x-rec.xOffset,rec.y-rec.yOffset,rec.h)
+        content[11] = '%.1f,%.1f,%.1f\n' % (rec.x-rec.xOffset, rec.y-rec.yOffset, rec.h)
         content[12] = '1\n'
 
 

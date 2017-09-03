@@ -109,9 +109,9 @@ for rec in receiverlist:
 
     # loop through conjugations of met conditions and run enm adding result to database
     metcondno = 0
-    for wind_direction in range(0, 360, 10):
-        for wind_speed in (0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5):
-            for tempgrad in (0, 1, 2, 3, 4):
+    for wind_direction in range(0, 30, 10):
+        for wind_speed in (0, 0.5, 1):
+            for tempgrad in (3, 4):
                 newMetCond = MetCond(20, 85, wind_speed, wind_direction, tempgrad, metcondno)
                 newRunFile.write(newMetCond, rec)
                 testRun = pyENM.ENMrun(sectionFileTemp, sectionFileTemp)
