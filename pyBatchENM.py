@@ -27,55 +27,53 @@ class ENMrun:
         print('finished')
 
     def read_results(self):
+        result_index = []
+        wind_index = -1
+        source_index = []
+        singe_source_result = []
+
         print('reading results')
         with open('enm1.1ou') as f:
-            self.content = f.readlines()
-        for index in range(len(self.content)):
-            if self.content[index][1:6] == 'TOTAL':
-                result_index = index
-        results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[result_index])
-        results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[result_index + 1])
-        results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[result_index + 2])
-        self.results_array.append(results_array1[0])
-        for j in range(len(results_array2)):
-            self.results_array.append(results_array1[j + 1])
-            self.results_array.append(results_array2[j])
-            self.results_array.append(results_array3[j])
+            out_content = f.readlines()
+        for index in range(len(out_content)):
+            if out_content[index][1:6] == 'TOTAL':
+                result_index.append(index)
+            if out_content[index][1:5] == 'WIND':
+                wind_index = index + 1
+            if out_content[index][1:7] == 'SOURCE':
+                source_index.append(index)
 
-    def write_results(self,connection,metcondno,tempgrad):
+        for i in result_index:
+            results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i])
+            results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i + 1])
+            results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i + 2])
+            singe_source_result.append(results_array1[0])
+            for j in range(len(results_array2)):
+                singe_source_result.append(results_array1[j + 1])
+                singe_source_result.append(results_array2[j])
+                singe_source_result.append(results_array3[j])
+        self.results_array.append(singe_source_result)
+        self.wind_dir, self.wind_speed = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[wind_index])
+        f.close()
+
+    def write_results(self, connection, metcondno, tempgrad):
         print("writing results to table")
         query = "INSERT INTO results VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-        self.results_array.insert(0, tempgrad)
-        self.results_array.insert(0, self.wind_dir)
-        self.results_array.insert(0, self.wind_speed)
-        self.results_array.insert(0, metcondno)
-        self.results_array.insert(0, self.recNo)
-        # get max id in orer to create unique primary key
-        cursor = connection.execute('SELECT max(id) FROM results ')
-        max_id = cursor.fetchone()[0]
-        if max_id is None:
-            max_id = -1
-        self.results_array.insert(0,max_id+1)
-        [float(i) for i in self.results_array]
-        connection.execute(query,self.results_array)
-        connection.commit()
-
-    def count_result_source(self):
-        count = 0
-        for i in range(len(self.content)):
-            if len(self.content[i])>2:
-                if self.content[i][1:7] == "SOURCE":
-                    count += 1
-        return count
-
-    def read_wind(self):
-        with open('enm1.1ou') as f:
-            self.content = f.readlines()
-        for index in range(len(self.content)):
-            if self.content[index][1:5] == 'WIND':
-                windindex = index + 1
-        self.wind_dir, self.wind_speed = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[windindex])
-        f.close()
+        for i in self.results_array:
+            i.insert(0, tempgrad)
+            i.insert(0, self.wind_dir)
+            i.insert(0, self.wind_speed)
+            i.insert(0, metcondno)
+            i.insert(0, self.recNo)
+            # get max id in order to create unique primary key
+            cursor = connection.execute('SELECT max(id) FROM results ')
+            max_id = cursor.fetchone()[0]
+            if max_id is None:
+                max_id = -1
+            i.insert(0, max_id + 1)
+            [float(j) for j in i]
+            connection.execute(query, i)
+            connection.commit()
 
 
 class SourceFile:
