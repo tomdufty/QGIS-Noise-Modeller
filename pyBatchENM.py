@@ -1,28 +1,24 @@
 # import statements python2.7
-import os
 import subprocess
 import sqlite3
 import re
-import math
 
+COORDINATE_LIMIT = 32000
 
-COORDINATE_LIMIT=32000
 
 class ENMrun:
-
-    ENMpath=r"C:/ENM/ENM11.EXE"
-    error_code=0
+    ENMpath = r"C:/ENM/ENM11.EXE"
+    error_code = 0
 
     def __init__(self,source,section):
         self.source_file = source
         self.section_file = section
         self.results_array = []
-        self.wind_speed=0
-        self.wind_dir=0
-        self.tempGrad=0
-        self.metCondNo=0
-        self.recNo=section.rec.no
-
+        self.wind_speed = 0
+        self.wind_dir = 0
+        self.tempGrad = 0
+        self.metCondNo = 0
+        self.recNo = section.rec.no
 
     def start_run(self):
         # start and run instance of ENM11
@@ -35,35 +31,34 @@ class ENMrun:
         with open('enm1.1ou') as f:
             self.content = f.readlines()
         for index in range(len(self.content)):
-            if self.content[index][1:6]=='TOTAL':
-                resultindex = index
-        results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[resultindex])
-        results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[resultindex+1])
-        results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[resultindex+2])
+            if self.content[index][1:6] == 'TOTAL':
+                result_index = index
+        results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[result_index])
+        results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[result_index + 1])
+        results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[result_index + 2])
         self.results_array.append(results_array1[0])
         for j in range(len(results_array2)):
-             self.results_array.append(results_array1[j+1])
-             self.results_array.append(results_array2[j])
-             self.results_array.append(results_array3[j])
+            self.results_array.append(results_array1[j + 1])
+            self.results_array.append(results_array2[j])
+            self.results_array.append(results_array3[j])
 
     def write_results(self,connection,metcondno,tempgrad):
         print("writing results to table")
-        query="INSERT INTO results VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-        self.results_array.insert(0,tempgrad)
-        self.results_array.insert(0,self.wind_dir)
+        query = "INSERT INTO results VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+        self.results_array.insert(0, tempgrad)
+        self.results_array.insert(0, self.wind_dir)
         self.results_array.insert(0, self.wind_speed)
-        self.results_array.insert(0,metcondno)
+        self.results_array.insert(0, metcondno)
         self.results_array.insert(0, self.recNo)
         # get max id in orer to create unique primary key
-        cursor=connection.execute('SELECT max(id) FROM results ')
+        cursor = connection.execute('SELECT max(id) FROM results ')
         max_id = cursor.fetchone()[0]
         if max_id is None:
-            max_id=-1
+            max_id = -1
         self.results_array.insert(0,max_id+1)
         [float(i) for i in self.results_array]
         connection.execute(query,self.results_array)
         connection.commit()
-
 
     def count_result_source(self):
         count = 0
@@ -77,16 +72,16 @@ class ENMrun:
         with open('enm1.1ou') as f:
             self.content = f.readlines()
         for index in range(len(self.content)):
-            if self.content[index][1:5]=='WIND':
-                windindex=index+1
-        self.wind_dir,self.wind_speed = re.findall("[+-]?[0-9]*?[.][0-9]*",self.content[windindex])
+            if self.content[index][1:5] == 'WIND':
+                windindex = index + 1
+        self.wind_dir, self.wind_speed = re.findall("[+-]?[0-9]*?[.][0-9]*", self.content[windindex])
         f.close()
 
 
 class SourceFile:
 
     path = 'C:/ENM/Sources/QGISENM.SRC'
-    demo_path='INPDEMO'
+    demo_path = 'INPDEMO'
 
     def __init__(self):
         print('new source file')
@@ -108,41 +103,44 @@ class SourceFile:
         x,y,z = source.x-self.xOffset,source.y-self.yOffset,source.z
         # check and see if source is within limits
         if x>COORDINATE_LIMIT:
-            if self.xOriginMoved==False:
-                self.xOffset=x-COORDINATE_LIMIT/2
-                x=x-self.xOffset
+            if self.xOriginMoved == False:
+                self.xOffset = x - COORDINATE_LIMIT / 2
+                x = x - self.xOffset
                 self.xOriginMoved=True
-                source.xOffset=self.xOffset
+                source.xOffset = self.xOffset
             else:
                 print('out of bounds')
                 return
         if y>COORDINATE_LIMIT:
-            if self.yOriginMoved==False:
-                self.yOffset=y
-                y=y-self.yOffset
-                self.yOriginMoved=True
-                source.yOffset=self.yOffset
+            if self.yOriginMoved == False:
+                self.yOffset = y
+                y = y - self.yOffset
+                self.yOriginMoved = True
+                source.yOffset = self.yOffset
             else:
                 print('out of bounds')
                 return
 
         spectrum=source.spectrum
         with open(self.path,'r') as srcfile:
-            src_content=srcfile.readlines()
+            src_content = srcfile.readlines()
         with open(self.path,'w') as srcfile:
             for index in range(len(src_content)):
                 if src_content[index][0:8] == '*X, Y, Z':
-                    xyzindex=index+1
+                    xyzindex = index + 1
                 if src_content[index][0:6] == '*Level':
-                    Levelindex=index+1
-            src_content[xyzindex]='%.0f    %.0f    %.1f    0    0    0\n'%(x,y,z)
-            src_content[Levelindex] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f\n'%tuple(
+                    Levelindex = index + 1
+            src_content[xyzindex] = '%.0f    %.0f    %.1f    0    0    0\n' % (x, y, z)
+            src_content[Levelindex] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
+                                      '  %0.1f\n' % tuple(
                 spectrum[0::3]
             )
-            src_content[Levelindex+1] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f\n' % tuple(
+            src_content[Levelindex + 1] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
+                                          '  %0.1f\n' % tuple(
                spectrum[1::3]
             )
-            src_content[Levelindex+2] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f\n' % tuple(
+            src_content[Levelindex + 2] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
+                                          '  %0.1f\n' % tuple(
                 spectrum[2::3]
             )
             srcfile.writelines(src_content)
@@ -161,7 +159,7 @@ class SectionFile:
 
     def add_section(self,section):
         print('writing section file')
-        recx=section.receiver.x-section.source.xOffset
+        recx = section.receiver.x - section.source.xOffset
         recy = section.receiver.y - section.source.yOffset
         srcx = section.source.x - section.source.xOffset
         srcy = section.source.y - section.source.yOffset
@@ -182,14 +180,14 @@ class RunFile:
     def __init__(self):
         print('new scenario file')
 
-    def write(self,metCond,rec):
+    def write(self, metcond, rec):
         with open('enm.1cs') as f:
             content = f.readlines()
         f.close()
 
         content[4] = 'QGISENM.SRC\n'
         content[6] = 'QGISENM.SEC\n'
-        content[9] = '20,85,%.1f,%.1f, 4 ,%d,\n' % (metCond.wind_speed,metCond.wind_dir,metCond.temp_grad)
+        content[9] = '20,85,%.1f,%.1f, 4 ,%d,\n' % (metcond.wind_speed, metcond.wind_dir, metcond.temp_grad)
         content[10] = '%d\n' % 1
         content[11] = '%.1f,%.1f,%.1f\n'%(rec.x-rec.xOffset,rec.y-rec.yOffset,rec.h)
         content[12] = '1\n'
@@ -200,64 +198,6 @@ class RunFile:
         with open('enm.1cs', 'w') as file:
             file.writelines(content)
         file.close()
-
-
-class Receiver:
-    def __init__(self, no, x, y, z, h):
-        print('new receiver')
-        self.no=no
-        self.x=x
-        self.y=y
-        self.xOffset=0
-        self.yOffset=0
-        self.z=z
-        self.h=h
-
-
-class Spectrum:
-    def __init__(self):
-        print('new spectrum')
-
-
-class Source:
-    def __init__(self,no,x,y,z,spect):
-        print('new source')
-        self.no=no
-        self.x=x
-        self.y=y
-        self.z=z
-        self.xOffset=0
-        self.yOffset=0
-        self.spectrum = []
-        for item in spect:
-            self.spectrum.append(item)
-
-
-class Section:
-    def __init__(self,receiver,source):
-        print('new section')
-        self.source=source
-        self.receiver=receiver
-        self.xzPointList=[]
-        # add first point - z height as 0 for now
-        self.add_point(0,0)
-        # add last point - should be moved to proper section development
-        dist=math.sqrt(math.pow((receiver.x-source.x),2)+math.pow((receiver.y-source.y),2))
-        self.add_point(dist,0)
-        self.add_point(dist+10,0)
-
-    def add_point(self,x,z):
-        self.xzPointList.append([x,z])
-
-
-class MetCond:
-    def __init__(self,temp,humidity,wind_speed,wind_dir,temp_grad,no):
-        self.metCondNo=no
-        self.temp=temp
-        self.humidity=humidity
-        self.wind_speed=wind_speed
-        self.wind_dir=wind_dir
-        self.temp_grad=temp_grad
 
 
 class ResultTable:
@@ -308,73 +248,9 @@ class ResultTable:
             print(e)
         if self.conn is not None:
             try:
-               c = self.conn.cursor()
-               print("create table")
-               c.execute(self.sql_create_results_table,())
+                c = self.conn.cursor()
+                print("create table")
+                c.execute(self.sql_create_results_table, ())
             except Exception as e:
                 print("exception")
                 print(e)
-
-# start of main code
-
-# create results table
-results_path = "results_test.db"
-results_table = ResultTable(results_path)
-
-# create list of receivers from dummy csv file to be replaced with shapefile input
-
-receiverlist=[]
-with open('receiverlist.csv') as f:
-    content = f.readlines()
-f.close()
-for i in range(len(content)):
-    arglistrec=[float(j) for j in content[i].split(',')]
-    newReceiver=Receiver(*arglistrec)
-    receiverlist.append(newReceiver)
-
-# create list of sources
-sourcelist=[]
-with open('sourcelist.csv') as f:
-    content = f.readlines()
-f.close()
-for i in range(len(content)):
-    # loop currntly redundant as each source overwrites the last
-    arglistsource = [float(j) for j in content[i].split(',')]
-    no,x,y,z = arglistsource[:4]
-    spectrum = arglistsource[4:len(arglistsource)]
-    newSource = Source(no,x,y,z,spectrum)
-    sourcelist.append(newSource)
-
-# loop through recievers, create appropriate files, run enm and write results to database
-for rec in receiverlist:
-    # create source file - initially only for 1 source
-    sourcefiletemp = SourceFile()
-    # ivf there were more then one source we would also loop through sources
-    sourcefiletemp.add_source(sourcelist[0])
-    rec.xOffset = sourcefiletemp.xOffset
-    rec.yOffset = sourcefiletemp.yOffset
-    # create section file
-    sectionFileTemp = SectionFile(rec)
-    # populate section file for each source receiver combo
-    newSection=Section(rec,sourcelist[0])
-    sectionFileTemp.add_section(newSection)
-
-    # create new runfile
-    newRunFile = RunFile()
-
-    # loop through conjugations of met conditions and run enm adding result to database
-    metcondno = 0
-    for wind_direction in range(0, 360, 10):
-        for wind_speed in (0,0.5,1,1.5,2,2.5,3,3.5,4,4.5,5):
-            for tempgrad in (0,1,2,3,4):
-                newMetCond=MetCond(20, 85, wind_speed, wind_direction, tempgrad, metcondno)
-                newRunFile.write(newMetCond,rec)
-                testRun=ENMrun(sectionFileTemp,sectionFileTemp)
-                testRun.start_run()
-                testRun.read_results()
-                testRun.read_wind()
-                # write results to table
-                testRun.write_results(results_table.conn,metcondno,tempgrad)
-                metcondno += 1
-
-
