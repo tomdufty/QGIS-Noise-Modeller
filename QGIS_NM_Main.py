@@ -117,7 +117,6 @@ for rec in receiverlist:
                 testRun = pyENM.ENMrun(sectionFileTemp, sectionFileTemp)
                 testRun.start_run()
                 testRun.read_results()
-                testRun.read_wind()
                 # write results to table
                 testRun.write_results(results_table.conn, metcondno, tempgrad)
                 metcondno += 1
