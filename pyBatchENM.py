@@ -94,42 +94,7 @@ class SourceFile:
         self.yOriginMoved = False
         self.xOffset = 0
         self.yOffset = 0
-        string = '*H-Third Octave'\
-            '*Y'\
-            '1,1'\
-            '2,1'\
-            '3,1'\
-            '4,1'\
-            '5,1'\
-            '6,1'\
-            '7,1'\
-            '*Title'\
-            ''\
-            '*Page'\
-            '1 , 0 , 0 , 0, 0'\
-            ''\
-            ''\
-            '*= Formula'\
-            ''\
-            '*Source'\
-            ' 7  ,\'POINT\' , 0 ,  , 17 ,'\
-            '*Title'\
-            ''\
-            '*I'\
-            ''\
-            ''\
-            '*X, Y, Z: Source Coordinates'\
-            '11    22    33    0    0    0'\
-            '*Frequency Range'\
-            ' 1 , 30 ,\'SPECT\''\
-            '            ----------------------FREQUENCY HZ----------------------'\
-            '             31.5   63   125   250   500    1k    2k    4k    8k   16k'\
-            '*Level'\
-            '            ,     ,     ,     ,     ,     ,     ,     ,     ,     ,'\
-            '            10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,'\
-            '                 ,     ,     ,     ,     ,     ,     ,     ,     ,     ,'\
-            '*Directivity-V3.05'\
-            '0,0,22.5,0,0,0,0'
+        # individual source in third octaves
 
         with open(self.demo_path) as demosrcfile:
             initial_content=demosrcfile.readlines()
@@ -139,10 +104,48 @@ class SourceFile:
         srcfile.close()
 
     def add_source(self, source):
+        string = '*H-Third Octave\n'\
+            '*Y\n'\
+            '1,1\n'\
+            '2,1\n'\
+            '3,1\n'\
+            '4,1\n'\
+            '5,1\n'\
+            '6,1\n'\
+            '7,1\n'\
+            '*Title\n'\
+            '\n'\
+            '*Page\n'\
+            '1 , 0 , 0 , 0, 0\n'\
+            '\n'\
+            '\n'\
+            '*= Formula\n'\
+            '\n'\
+            '*Source\n'\
+            ' %d  ,\'POINT\' , 0 ,  , %d ,\n'\
+            '*Title\n'\
+            '\n'\
+            '*I\n'\
+            '\n'\
+            '\n'\
+            '*X, Y, Z: Source Coordinates\n'\
+            '%f    %f    %f    0    0    0'\
+            '*Frequency Range\n'\
+            ' 1 , 30 ,\'SPECT\'\n'\
+            '            ----------------------FREQUENCY HZ----------------------\n'\
+            '             31.5   63   125   250   500    1k    2k    4k    8k   16k\n'\
+            '*Level\n'\
+            '            ,     ,     ,     ,     ,     ,     ,     ,     ,     ,\n'\
+            '            10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,\n'\
+            '                 ,     ,     ,     ,     ,     ,     ,     ,     ,     ,\n'\
+            '*Directivity-V3.05\n'\
+            '0,0,22.5,0,0,0,0\n' % (source.no,sectionno,source.x,source.y,source.z)
+
+
         print('writing source file')
-        x,y,z = source.x-self.xOffset,source.y-self.yOffset,source.z
+        x, y, z = source.x-self.xOffset,source.y-self.yOffset,source.z
         # check and see if source is within limits
-        if x>COORDINATE_LIMIT:
+        if x > COORDINATE_LIMIT:
             if self.xOriginMoved == False:
                 self.xOffset = x - COORDINATE_LIMIT / 2
                 x = x - self.xOffset
