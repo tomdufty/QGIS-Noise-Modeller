@@ -45,11 +45,12 @@ class ENMrun:
         print(result_index)
         print(source_index)
         source_count = 0
-        for i in result_index:
+        for i in range(len(source_index)):
+            print(source_count)
             singe_source_result = []
-            results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i])
-            results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i + 1])
-            results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i + 2])
+            results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[result_index[i]])
+            results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[result_index[i] + 1])
+            results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[result_index[i] + 2])
             singe_source_result.append(results_array1[0])
             for j in range(len(results_array2)):
                 singe_source_result.append(results_array1[j + 1])
@@ -96,11 +97,9 @@ class SourceFile:
         self.yOffset = 0
         # individual source in third octaves
 
-        with open(self.demo_path) as demosrcfile:
-            initial_content=demosrcfile.readlines()
-        demosrcfile.close()
         with open(self.path,'w') as srcfile:
-            srcfile.writelines(initial_content)
+            srcfile.seek(0)
+            srcfile.truncate()
         srcfile.close()
 
     def add_source(self, source):
@@ -126,7 +125,7 @@ class SourceFile:
             else:
                 print('out of bounds')
                 return
-
+        # pooorly  ofrmatted string to replaced with properly formatted array string
         string = '*H-Third Octave\n'\
             '*Y\n'\
             '1,1\n'\
@@ -152,7 +151,7 @@ class SourceFile:
             '\n'\
             '\n'\
             '*X, Y, Z: Source Coordinates\n'\
-            '%f    %f    %f    0    0    0'\
+            '%f    %f    %f    0    0    0\n'\
             '*Frequency Range\n'\
             ' 1 , 30 ,\'SPECT\'\n'\
             '            ----------------------FREQUENCY HZ----------------------\n'\
@@ -171,7 +170,7 @@ class SourceFile:
 
         # with open(self.path, 'r') as srcfile:
         #     src_content = srcfile.readlines()
-        with open(self.path, 'w') as srcfile:
+        with open(self.path, 'a') as srcfile:
             #previous method of writing source file based on demo file - delete when succesfully made redundant
 
             # for index in range(len(src_content)):
@@ -243,8 +242,6 @@ class RunFile:
         content[10] = '%d\n' % 1
         content[11] = '%.1f,%.1f,%.1f\n' % (rec.x-rec.xOffset, rec.y-rec.yOffset, rec.h)
         content[12] = '1\n'
-
-
 
         print('writing scenario file')
         with open('enm.1cs', 'w') as file:
