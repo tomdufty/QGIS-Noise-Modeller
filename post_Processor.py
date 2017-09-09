@@ -26,6 +26,7 @@ from PyQt4.QtGui import QAction, QIcon
 import resources
 # Import the code for the dialog
 from post_Processor_dialog import QgisNMDialog
+from receiver_manager import ReceiverManagerDialog
 import os.path
 
 
@@ -134,6 +135,7 @@ class QgisNM:
 
         # Create the dialog (after translation) and keep reference
         self.dlg = QgisNMDialog()
+        self.dlg2 = ReceiverManagerDialog()
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
@@ -167,6 +169,11 @@ class QgisNM:
             text=self.tr(u'Noise Modeller'),
             callback=self.run,
             parent=self.iface.mainWindow())
+        self.add_action(
+            icon_path,
+            text=self.tr(u'2nd noise modeller'),
+            callback=self.run_receiver_manager(),
+            parent=self.iface.mainWindow())
 
 
     def unload(self):
@@ -181,6 +188,18 @@ class QgisNM:
 
 
     def run(self):
+        """Run method that performs all the real work"""
+        # show the dialog
+        self.dlg.show()
+        # Run the dialog event loop
+        result = self.dlg.exec_()
+        # See if OK was pressed
+        if result:
+            # Do something useful here - delete the line containing pass and
+            # substitute with your code.
+            pass
+
+    def run_receiver_manager(self):
         """Run method that performs all the real work"""
         # show the dialog
         self.dlg.show()
