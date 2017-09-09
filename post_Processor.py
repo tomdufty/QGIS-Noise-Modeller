@@ -134,7 +134,7 @@ class QgisNM:
 
         # Create the dialog (after translation) and keep reference
         self.dlg = QgisNMDialog()
-        # self.dlg2 = ReceiverManagerDialog()
+        self.dlg2 = ReceiverManagerDialog()
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
@@ -202,6 +202,14 @@ class QgisNM:
         """Run method that performs all the real work"""
         # show the dialog
         self.dlg2.show()
+
+        layers = self.iface.legendInterface().layers()
+        layer_list = []
+        for layer in layers:
+            layer_list.append(layer.name())
+            self.dlg2.comboBox.addItems(layer_list)
+            self.dlg2.tableWidget.addItems(layer_list)
+
         # Run the dialog event loop
         result = self.dlg2.exec_()
         # See if OK was pressed
