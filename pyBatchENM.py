@@ -45,11 +45,12 @@ class ENMrun:
         print(result_index)
         print(source_index)
         source_count = 0
-        for i in result_index:
+        for i in range(len(source_index)):
+            print(source_count)
             singe_source_result = []
-            results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i])
-            results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i + 1])
-            results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[i + 2])
+            results_array1 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[result_index[i]])
+            results_array2 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[result_index[i] + 1])
+            results_array3 = re.findall("[+-]?[0-9]*?[.][0-9]*", out_content[result_index[i] + 2])
             singe_source_result.append(results_array1[0])
             for j in range(len(results_array2)):
                 singe_source_result.append(results_array1[j + 1])
@@ -96,14 +97,35 @@ class SourceFile:
         self.yOffset = 0
         # individual source in third octaves
 
-        with open(self.demo_path) as demosrcfile:
-            initial_content=demosrcfile.readlines()
-        demosrcfile.close()
         with open(self.path,'w') as srcfile:
-            srcfile.writelines(initial_content)
+            srcfile.seek(0)
+            srcfile.truncate()
         srcfile.close()
 
     def add_source(self, source):
+        print('writing source file')
+        x, y, z = source.x - self.xOffset, source.y - self.yOffset, source.z
+        spectrum = source.spectrum
+        # check and see if source is within limits
+        if x > COORDINATE_LIMIT:
+            if self.xOriginMoved is False:
+                self.xOffset = x - COORDINATE_LIMIT / 2
+                x = x - self.xOffset
+                self.xOriginMoved = True
+                source.xOffset = self.xOffset
+            else:
+                print('out of bounds')
+                return
+        if y > COORDINATE_LIMIT:
+            if self.yOriginMoved is False:
+                self.yOffset = y
+                y = y - self.yOffset
+                self.yOriginMoved = True
+                source.yOffset = self.yOffset
+            else:
+                print('out of bounds')
+                return
+        # pooorly  ofrmatted string to replaced with properly formatted array string
         string = '*H-Third Octave\n'\
             '*Y\n'\
             '1,1\n'\
@@ -129,67 +151,50 @@ class SourceFile:
             '\n'\
             '\n'\
             '*X, Y, Z: Source Coordinates\n'\
-            '%f    %f    %f    0    0    0'\
+            '%f    %f    %f    0    0    0\n'\
             '*Frequency Range\n'\
             ' 1 , 30 ,\'SPECT\'\n'\
             '            ----------------------FREQUENCY HZ----------------------\n'\
             '             31.5   63   125   250   500    1k    2k    4k    8k   16k\n'\
             '*Level\n'\
-            '            ,     ,     ,     ,     ,     ,     ,     ,     ,     ,\n'\
-            '            10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,10   ,\n'\
-            '                 ,     ,     ,     ,     ,     ,     ,     ,     ,     ,\n'\
+            '            %f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,\n'\
+            '            %f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,\n'\
+            '            %f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,%f   ,\n'\
             '*Directivity-V3.05\n'\
-            '0,0,22.5,0,0,0,0\n' % (source.no,sectionno,source.x,source.y,source.z)
+            '0,0,22.5,0,0,0,0\n' % (source.no, source.no, x, y, z, spectrum[0], spectrum[3], spectrum[6],
+                                    spectrum[9], spectrum[12], spectrum[15],spectrum[18], spectrum[21], spectrum[24],
+                                    spectrum[27], spectrum[1], spectrum[4], spectrum[7], spectrum[10], spectrum[13],
+                                    spectrum[16], spectrum[19], spectrum[22],spectrum[25], spectrum[28], spectrum[2],
+                                    spectrum[5], spectrum[8], spectrum[11], spectrum[14], spectrum[17], spectrum[20],
+                                    spectrum[23], spectrum[26], spectrum[29])
 
+        # with open(self.path, 'r') as srcfile:
+        #     src_content = srcfile.readlines()
+        with open(self.path, 'a') as srcfile:
+            #previous method of writing source file based on demo file - delete when succesfully made redundant
 
-        print('writing source file')
-        x, y, z = source.x-self.xOffset,source.y-self.yOffset,source.z
-        # check and see if source is within limits
-        if x > COORDINATE_LIMIT:
-            if self.xOriginMoved == False:
-                self.xOffset = x - COORDINATE_LIMIT / 2
-                x = x - self.xOffset
-                self.xOriginMoved=True
-                source.xOffset = self.xOffset
-            else:
-                print('out of bounds')
-                return
-        if y>COORDINATE_LIMIT:
-            if self.yOriginMoved == False:
-                self.yOffset = y
-                y = y - self.yOffset
-                self.yOriginMoved = True
-                source.yOffset = self.yOffset
-            else:
-                print('out of bounds')
-                return
+            # for index in range(len(src_content)):
+            #     if src_content[index][0:8] == '*X, Y, Z':
+            #         xyzindex = index + 1
+            #     if src_content[index][0:6] == '*Level':
+            #         Levelindex = index + 1
+            #     print(xyzindex)
+            #     print(Levelindex)
+            #     src_content[xyzindex] = '%.0f    %.0f    %.1f    0    0    0\n' % (x, y, z)
+            #     src_content[Levelindex] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
+            #                               '  %0.1f\n' % tuple(
+            #         spectrum[0::3]
+            #     )
+            #     src_content[Levelindex + 1] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
+            #                                   '  %0.1f\n' % tuple(
+            #        spectrum[1::3]
+            #     )
+            #     src_content[Levelindex + 2] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
+            #                                   '  %0.1f\n' % tuple(
+            #         spectrum[2::3]
+            #     )
 
-        spectrum = source.spectrum
-        with open(self.path, 'r') as srcfile:
-            src_content = srcfile.readlines()
-        with open(self.path,'w') as srcfile:
-
-            for index in range(len(src_content)):
-                if src_content[index][0:8] == '*X, Y, Z':
-                    xyzindex = index + 1
-                if src_content[index][0:6] == '*Level':
-                    Levelindex = index + 1
-                print(xyzindex)
-                print(Levelindex)
-                src_content[xyzindex] = '%.0f    %.0f    %.1f    0    0    0\n' % (x, y, z)
-                src_content[Levelindex] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
-                                          '  %0.1f\n' % tuple(
-                    spectrum[0::3]
-                )
-                src_content[Levelindex + 1] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
-                                              '  %0.1f\n' % tuple(
-                   spectrum[1::3]
-                )
-                src_content[Levelindex + 2] = '             %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f  %0.1f' \
-                                              '  %0.1f\n' % tuple(
-                    spectrum[2::3]
-                )
-            srcfile.writelines(src_content)
+            srcfile.writelines(string)
             self.numberSource += 1
 
 
@@ -237,8 +242,6 @@ class RunFile:
         content[10] = '%d\n' % 1
         content[11] = '%.1f,%.1f,%.1f\n' % (rec.x-rec.xOffset, rec.y-rec.yOffset, rec.h)
         content[12] = '1\n'
-
-
 
         print('writing scenario file')
         with open('enm.1cs', 'w') as file:
