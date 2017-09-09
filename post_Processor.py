@@ -207,8 +207,9 @@ class QgisNM:
         layer_list = []
         for layer in layers:
             layer_list.append(layer.name())
+            print(layer.name)
             self.dlg2.comboBox.addItems(layer_list)
-            self.dlg2.tableWidget.addItems(layer_list)
+            self.dlg2.listView.addItems(layer_list)
 
         # Run the dialog event loop
         result = self.dlg2.exec_()
