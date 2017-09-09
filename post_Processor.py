@@ -82,7 +82,6 @@ class QgisNM:
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('QgisNM', message)
 
-
     def add_action(
         self,
         icon_path,
@@ -135,7 +134,7 @@ class QgisNM:
 
         # Create the dialog (after translation) and keep reference
         self.dlg = QgisNMDialog()
-        self.dlg2 = ReceiverManagerDialog()
+        # self.dlg2 = ReceiverManagerDialog()
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
@@ -169,11 +168,11 @@ class QgisNM:
             text=self.tr(u'Noise Modeller'),
             callback=self.run,
             parent=self.iface.mainWindow())
-        # self.add_action(
-        #     icon_path,
-        #     text=self.tr(u'2nd noise modeller'),
-        #     callback=self.run_receiver_manager(),
-        #     parent=self.iface.mainWindow())
+        self.add_action(
+            icon_path,
+            text=self.tr(u'2nd noise modeller'),
+            callback=self.run_receiver_manager,
+            parent=self.iface.mainWindow())
 
 
     def unload(self):
