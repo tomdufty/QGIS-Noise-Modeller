@@ -169,11 +169,11 @@ class QgisNM:
             text=self.tr(u'Noise Modeller'),
             callback=self.run,
             parent=self.iface.mainWindow())
-        self.add_action(
-            icon_path,
-            text=self.tr(u'2nd noise modeller'),
-            callback=self.run_receiver_manager(),
-            parent=self.iface.mainWindow())
+        # self.add_action(
+        #     icon_path,
+        #     text=self.tr(u'2nd noise modeller'),
+        #     callback=self.run_receiver_manager(),
+        #     parent=self.iface.mainWindow())
 
 
     def unload(self):
@@ -202,9 +202,9 @@ class QgisNM:
     def run_receiver_manager(self):
         """Run method that performs all the real work"""
         # show the dialog
-        self.dlg.show()
+        self.dlg2.show()
         # Run the dialog event loop
-        result = self.dlg.exec_()
+        result = self.dlg2.exec_()
         # See if OK was pressed
         if result:
             # Do something useful here - delete the line containing pass and
